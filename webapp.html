@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #game-info {
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            background-color: #333;
+            padding: 5px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            cursor: pointer;
+            user-select: none;
+        }
+        .cell:hover {
+            background-color: #f5f5f5;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe</h1>
+    <div id="game-info">
+        Games Played: <span id="games-played">0</span> | Wins: <span id="player-wins">0</span>
+    </div>
+    <div id="status">Player X's Turn</div>
+    <div id="board"></div>
+    <button onclick="resetGame()">Reset Game</button>
+
+    <script>
+        const board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let gamesPlayed = parseInt(localStorage.getItem('gamesPlayed')) || 0;
+        let playerWins = parseInt(localStorage.getItem('playerWins')) || 0;
+
+        // Initialize game info
+        document.getElementById('games-played').textContent = gamesPlayed;
+        document.getElementById('player-wins').textContent = playerWins;
+
+        // Create board
+        const boardElement = document.getElementById('board');
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            cell.addEventListener('click', () => handleCellClick(i));
+            boardElement.appendChild(cell);
+        }
+
+        function handleCellClick(index) {
+            if (board[index] !== '' || !gameActive || currentPlayer !== 'X') return;
+            makeMove(index, 'X');
+            if (gameActive) {
+                setTimeout(computerMove, 500); // Delay for better UX
+            }
+        }
+
+        function makeMove(index, player) {
+            board[index] = player;
+            document.querySelector(`.cell[data-index="${index}"]`).textContent = player;
+            if (checkWin(player)) {
+                document.getElementById('status').textContent = `${player} Wins!`;
+                gameActive = false;
+                if (player === 'X') {
+                    playerWins++;
+                    localStorage.setItem('playerWins', playerWins);
+                    document.getElementById('player-wins').textContent = playerWins;
+                }
+                gamesPlayed++;
+                localStorage.setItem('gamesPlayed', gamesPlayed);
+                document.getElementById('games-played').textContent = gamesPlayed;
+                return;
+            }
+            if (board.every(cell => cell !== '')) {
+                document.getElementById('status').textContent = "It's a Tie!";
+                gameActive = false;
+                gamesPlayed++;
+                localStorage.setItem('gamesPlayed', gamesPlayed);
+                document.getElementById('games-played').textContent = gamesPlayed;
+                return;
+            }
+            currentPlayer = player === 'X' ? 'O' : 'X';
+            document.getElementById('status').textContent = `Player ${currentPlayer}'s Turn`;
+        }
+
+        function computerMove() {
+            // Simple AI: Try to win, block player, or pick random
+            const winningMove = findBestMove('O');
+            if (winningMove !== -1) {
+                makeMove(winningMove, 'O');
+                return;
+            }
+            const blockingMove = findBestMove('X');
+            if (blockingMove !== -1) {
+                makeMove(blockingMove, 'O');
+                return;
+            }
+            const emptyIndices = board
+                .map((cell, i) => (cell === '' ? i : -1))
+                .filter(i => i !== -1);
+            if (emptyIndices.length > 0) {
+                const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                makeMove(randomIndex, 'O');
+            }
+        }
+
+        function findBestMove(player) {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+                [0, 4, 8], [2, 4, 6] // Diagonals
+            ];
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] === player && board[b] === player && board[c] === '') return c;
+                if (board[a] === player && board[c] === player && board[b] === '') return b;
+                if (board[b] === player && board[c] === player && board[a] === '') return a;
+            }
+            return -1;
+        }
+
+        function checkWin(player) {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return winPatterns.some(pattern =>
+                pattern.every(index => board[index] === player)
+            );
+        }
+
+        function resetGame() {
+            board.fill('');
+            currentPlayer = 'X';
+            gameActive = true;
+            document.getElementById('status').textContent = "Player X's Turn";
+            document.querySelectorAll('.cell').forEach(cell => (cell.textContent = ''));
+        }
+    </script>
+</body>
+</html>
